@@ -1,0 +1,12 @@
+version: "3.8"  # Recommended version syntax
+
+services:
+  frontend:
+    container_name: car-showroom-frontend
+    build: .
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules  # prevent host node_modules from conflicting
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
