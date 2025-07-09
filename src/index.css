@@ -1,6 +1,10 @@
 /* index.css */
 
-/* CSS Reset */
+
+
+@import "tailwindcss";
+/* CSS Reset - Tailwind's base already includes a modern reset, */
+/* so you can likely remove this unless you need specific overrides */
 *,
 *::before,
 *::after {
