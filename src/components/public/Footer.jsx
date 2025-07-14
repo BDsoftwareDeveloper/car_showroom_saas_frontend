@@ -1,110 +1,108 @@
-import { useEffect, useState } from "react";
-import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa";
-
-
+import PropTypes from "prop-types";
+import {
+  FaFacebookF,
+  FaTwitter,
+  FaInstagram,
+  FaLinkedinIn,
+} from "react-icons/fa";
 import NewsletterForm from "./NewsletterForm";
 
-export default function Footer() {
-  const [tenant, setTenant] = useState(null);
- 
-  useEffect(() => {
-    // const subdomain = window.location.hostname.split(".")[0]; // e.g., 'driveeasy'
-    // const subdomain = 'driveeasy'
-    // fetch(`/api/v1/public/tenant-profile?subdomain=${subdomain}`)
-    fetch(`/api/v1/public/tenant-profile?subdomain=driveeasy`)
-      .then((res) => res.json())
-      .then((data) => setTenant(data))
-      .catch(() => {
-        setTenant({
-          company_name: "CarShowroom SaaS",
-          email: "support@carshowroomsaas.com",
-          phone: "+880-123-456789",
-          address: "Dhaka, Bangladesh",
-          social: {},
-        });
-      });
-  }, []);
-
+export default function Footer({
+  aboutText,
+  facebookUrl,
+  twitterUrl,
+  instagramUrl,
+  linkedinUrl,
+  footerText,
+}) {
   const currentYear = new Date().getFullYear();
-  const name = tenant?.company_name || "CarShowroom SaaS";
-  const email = tenant?.email || "support@carshowroomsaas.com";
-  const phone = tenant?.phone || "+880-123-456789";
-  const address = tenant?.address || "Dhaka, Bangladesh";
-  const social = tenant?.social || {};
+
+  const socialLinks = [
+    { icon: <FaFacebookF />, label: "Facebook", url: facebookUrl },
+    { icon: <FaTwitter />, label: "Twitter", url: twitterUrl },
+    { icon: <FaInstagram />, label: "Instagram", url: instagramUrl },
+    { icon: <FaLinkedinIn />, label: "LinkedIn", url: linkedinUrl },
+  ];
 
   return (
-    <footer className="bg-gray-900 text-gray-300 py-10 px-6">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Brand */}
+    <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-8 lg:px-16">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+        {/* About / Brand */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-2">{name}</h2>
-          <p className="text-sm">
-            Cloud-powered platform to manage your car dealership with ease.
+          <h2 className="text-2xl font-bold text-white mb-3">SpeedAuto</h2>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            {aboutText ||
+              "Cloud-powered platform to manage your car dealership with ease."}
           </p>
         </div>
 
-        {/* Contact Info */}
+        {/* Contact Info (Optional Static Section) */}
         <div>
-          <h3 className="text-white text-sm font-semibold mb-3">Contact</h3>
+          <h3 className="text-white text-lg font-semibold mb-4">Contact</h3>
           <ul className="text-sm space-y-2">
-            <li>Email: {email}</li>
-            <li>Phone: {phone}</li>
-            <li>{address}</li>
+            <li>
+              <a
+                href="mailto:support@speedauto.com"
+                className="hover:text-white transition"
+              >
+                📧 support@speedauto.com
+              </a>
+            </li>
+            <li>
+              <a
+                href="tel:+880123456789"
+                className="hover:text-white transition"
+              >
+                📞 +880-123-456789
+              </a>
+            </li>
+            <li className="text-gray-400">📍 Dhaka, Bangladesh</li>
           </ul>
         </div>
 
         {/* Newsletter */}
         <div>
-            {/* <NewsletterForm subdomain={subdomain} /> */}
-            <NewsletterForm subdomain="driveeasy" />
-          {/* <h3 className="text-white text-sm font-semibold mb-3">Newsletter</h3>
-          <p className="text-sm mb-2">Stay up to date with updates</p>
-          <form className="flex flex-col space-y-2">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="px-3 py-2 rounded bg-gray-800 border border-gray-600 text-sm text-white placeholder-gray-400"
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white text-sm px-3 py-2 rounded hover:bg-blue-700"
-            >
-              Subscribe
-            </button>
-          </form> */}
+          <h3 className="text-white text-lg font-semibold mb-4">Subscribe</h3>
+          <NewsletterForm subdomain={localStorage.getItem("tenant_subdomain") || "default"} />
         </div>
 
         {/* Social Media */}
         <div>
-          <h3 className="text-white text-sm font-semibold mb-3">Follow Us</h3>
-          <div className="flex gap-4 text-xl">
-            {social.facebook && (
-              <a href={social.facebook} className="hover:text-white" target="_blank" rel="noopener noreferrer">
-                <FaFacebookF />
-              </a>
-            )}
-            {social.twitter && (
-              <a href={social.twitter} className="hover:text-white" target="_blank" rel="noopener noreferrer">
-                <FaTwitter />
-              </a>
-            )}
-            {social.instagram && (
-              <a href={social.instagram} className="hover:text-white" target="_blank" rel="noopener noreferrer">
-                <FaInstagram />
-              </a>
-            )}
-            {social.linkedin && (
-              <a href={social.linkedin} className="hover:text-white" target="_blank" rel="noopener noreferrer">
-                <FaLinkedinIn />
-              </a>
+          <h3 className="text-white text-lg font-semibold mb-4">Follow Us</h3>
+          <div className="flex gap-4 text-2xl">
+            {socialLinks.map(
+              ({ icon, label, url }) =>
+                url && (
+                  <a
+                    key={label}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition"
+                    aria-label={label}
+                  >
+                    {icon}
+                  </a>
+                )
             )}
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-700 mt-8 pt-4 text-center text-sm text-gray-500">
-        © {currentYear} {name}. All rights reserved.
+      {/* Footer Bottom */}
+      <div className="border-t border-gray-700 mt-12 pt-6 text-center text-sm text-gray-500">
+        {footerText || `© ${currentYear} SpeedAuto. All rights reserved.`}
       </div>
     </footer>
   );
 }
+
+// ✅ Define expected props
+Footer.propTypes = {
+  aboutText: PropTypes.string,
+  facebookUrl: PropTypes.string,
+  twitterUrl: PropTypes.string,
+  instagramUrl: PropTypes.string,
+  linkedinUrl: PropTypes.string,
+  footerText: PropTypes.string,
+};

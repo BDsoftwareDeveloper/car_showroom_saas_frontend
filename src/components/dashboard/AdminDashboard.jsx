@@ -1,89 +1,12 @@
-// import { useState } from "react";
-// import AdminUserManagement from "../admin/AdminUserManagement";
-// import AdminCarManagement from "../admin/AdminCarManagement"; // <-- Import the new component
-// import LogoutButton from "../common/LogoutButton";
-
-// // Placeholder for sales management
-// function SalesManagement() {
-//   return (
-//     <div>
-//       <h2>Sales Management</h2>
-//       <p>Sales features coming soon...</p>
-//     </div>
-//   );
-// }
-
-// export default function AdminDashboard() {
-//   const [activeTab, setActiveTab] = useState("users");
-
-//   return (
-//     <div style={{ padding: "20px" }}>
-//       <LogoutButton />
-//       <h1>👩‍💼 Admin Dashboard</h1>
-//       {/* Tab Buttons */}
-//       <div style={{ marginBottom: 20 }}>
-//         <button
-//           onClick={() => setActiveTab("users")}
-//           style={{
-//             marginRight: 10,
-//             background: activeTab === "users" ? "#1976d2" : "#eee",
-//             color: activeTab === "users" ? "#fff" : "#000",
-//             border: "1px solid #1976d2",
-//             padding: "6px 16px",
-//             borderRadius: 4,
-//           }}
-//         >
-//           User Management
-//         </button>
-//         <button
-//           onClick={() => setActiveTab("cars")}
-//           style={{
-//             marginRight: 10,
-//             background: activeTab === "cars" ? "#1976d2" : "#eee",
-//             color: activeTab === "cars" ? "#fff" : "#000",
-//             border: "1px solid #1976d2",
-//             padding: "6px 16px",
-//             borderRadius: 4,
-//           }}
-//         >
-//           Car Management
-//         </button>
-//         <button
-//           onClick={() => setActiveTab("sales")}
-//           style={{
-//             background: activeTab === "sales" ? "#1976d2" : "#eee",
-//             color: activeTab === "sales" ? "#fff" : "#000",
-//             border: "1px solid #1976d2",
-//             padding: "6px 16px",
-//             borderRadius: 4,
-//           }}
-//         >
-//           Sales Management
-//         </button>
-//       </div>
-
-//       {/* Tab Content */}
-//       {activeTab === "users" && (
-//         <AdminUserManagement />
-//       )}
-//       {activeTab === "cars" && (
-//         <AdminCarManagement />
-//       )}
-//       {activeTab === "sales" && <SalesManagement />}
-//     </div>
-//   );
-// }
-
-
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminUserManagement from "../admin/AdminUserManagement";
 import AdminCarManagement from "../admin/AdminCarManagement";
-import AdminContactMessages from "../admin/AdminContactMessages"; // ✅ Import new
-import AdminFrontpageSettings from "../admin/AdminFrontpageSettings"; // ✅ Import new
+import AdminContactMessages from "../admin/AdminContactMessages";
+import AdminFrontpageSettings from "../admin/AdminFrontpageSettings";
+import AdminBookingManagement from "../admin/AdminBookingManagement"; // ✅ New import
 import LogoutButton from "../common/LogoutButton";
 
-// Placeholder for sales management
+// Optional stub component
 function SalesManagement() {
   return (
     <div>
@@ -95,21 +18,36 @@ function SalesManagement() {
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("users");
+  const [tenant, setTenant] = useState(null);
+
+  useEffect(() => {
+    const storedTenant = localStorage.getItem("tenant_subdomain");
+    if (storedTenant) setTenant(storedTenant);
+  }, []);
+
+  const tabs = [
+    { key: "users", label: "User Management", component: <AdminUserManagement /> },
+    { key: "cars", label: "Car Management", component: <AdminCarManagement /> },
+    { key: "sales", label: "Sales Management", component: <SalesManagement /> },
+    { key: "messages", label: "Contact Messages", component: <AdminContactMessages /> },
+    { key: "frontpage", label: "Frontpage Settings", component: <AdminFrontpageSettings /> },
+    {
+      key: "bookings",
+      label: "Booking Management",
+      component: tenant ? <AdminBookingManagement tenant={tenant} /> : <p>Loading tenant info...</p>, // ✅ Pass tenant
+    },
+  ];
+
+  const currentTab = tabs.find((tab) => tab.key === activeTab);
 
   return (
     <div style={{ padding: "20px" }}>
       <LogoutButton />
-      <h1>👩‍💼 Admin Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6">👩‍💼 Admin Dashboard</h1>
 
       {/* Tab Buttons */}
       <div style={{ marginBottom: 20 }}>
-        {[
-          { key: "users", label: "User Management" },
-          { key: "cars", label: "Car Management" },
-          { key: "sales", label: "Sales Management" },
-          { key: "messages", label: "Contact Messages" },
-          { key: "frontpage", label: "Frontpage Settings" },
-        ].map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -120,6 +58,7 @@ export default function AdminDashboard() {
               border: "1px solid #1976d2",
               padding: "6px 16px",
               borderRadius: 4,
+              cursor: "pointer",
             }}
           >
             {tab.label}
@@ -128,11 +67,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "users" && <AdminUserManagement />}
-      {activeTab === "cars" && <AdminCarManagement />}
-      {activeTab === "sales" && <SalesManagement />}
-      {activeTab === "messages" && <AdminContactMessages />}
-      {activeTab === "frontpage" && <AdminFrontpageSettings />}
+      <div style={{ marginTop: 20 }}>
+        {currentTab?.component || <p>Invalid tab selected.</p>}
+      </div>
     </div>
   );
 }
