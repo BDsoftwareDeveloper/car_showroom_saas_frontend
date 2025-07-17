@@ -878,32 +878,29 @@ export default function AdminFrontpageSettings() {
   }, [displayMode]);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await api.get(`/admin/frontpage-settings`);
-        const data = res.data;
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem("admin_token"); // or use your auth context/provider
 
-        if (data && typeof data === "object" && Object.keys(data).length > 0) {
-          setForm((prev) => ({
-            ...prev,
-            ...data,
-            banners: data.banners || [],
-            sidebar_items: data.sidebar_items || [],
-            sidebar_title: data.sidebar_title || "",
-          }));
+      const res = await api.get(`/admin/frontpage-settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-          setLogoUrl(data.logo_url ? `/api${data.logo_url}` : "");
-        } else {
-          setForm((prev) => ({
-            ...prev,
-            ...demoDefaults,
-            banners: [],
-            sidebar_items: [],
-            sidebar_title: "",
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to fetch settings:", err);
+      const data = res.data;
+
+      if (data && typeof data === "object" && Object.keys(data).length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          ...data,
+          banners: data.banners || [],
+          sidebar_items: data.sidebar_items || [],
+          sidebar_title: data.sidebar_title || "",
+        }));
+
+        setLogoUrl(data.logo_url ? `/api${data.logo_url}` : "");
+      } else {
         setForm((prev) => ({
           ...prev,
           ...demoDefaults,
@@ -912,11 +909,20 @@ export default function AdminFrontpageSettings() {
           sidebar_title: "",
         }));
       }
-    };
+    } catch (err) {
+      console.error("❌ Failed to fetch settings:", err);
+      setForm((prev) => ({
+        ...prev,
+        ...demoDefaults,
+        banners: [],
+        sidebar_items: [],
+        sidebar_title: "",
+      }));
+    }
+  };
 
-    fetchSettings();
-  }, []);
-
+  fetchSettings();
+}, []);
 
   const handleInputChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -1283,18 +1289,33 @@ export default function AdminFrontpageSettings() {
       </div>
 
       {displayMode === "dropdown" && (
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-        >
-          {categories.map((cat) => (
-            <option key={cat.key} value={cat.key}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
+        <>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
+          >
+            {categories.map((cat) => (
+              <option key={cat.key} value={cat.key}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+
+          <form onSubmit={handleTextUpdate} className="space-y-4">
+            {renderFields(selectedCategory)}
+            {selectedCategory !== "logo" && (
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              >
+                Save Settings
+              </button>
+            )}
+          </form>
+        </>
       )}
+
 
       {/* {displayMode === "list" && (
         <div className="flex gap-6 mb-4">
