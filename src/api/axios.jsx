@@ -1,5 +1,6 @@
 // src/api/axios.js
 import axios from "axios";
+import { API_URL } from "./constants";
 
 // Extract subdomain (e.g., speedauto from speedauto.localhost)
 const getTenantSubdomain = () => {
@@ -9,7 +10,7 @@ const getTenantSubdomain = () => {
 };
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api/v1", // Use VITE_API_BASE_URL in prod
+  baseURL: API_URL, // ✅ Now uses your env-configured base URL
   headers: {
     "Content-Type": "application/json",
   },
@@ -29,7 +30,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Inject subdomain if not already set
+    // Inject subdomain (for multitenancy)
     const subdomain = getTenantSubdomain();
     config.params = {
       ...(config.params || {}),
