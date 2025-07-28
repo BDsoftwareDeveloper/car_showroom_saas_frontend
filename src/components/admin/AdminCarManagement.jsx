@@ -1,364 +1,340 @@
 import { useEffect, useState } from "react";
-import axios from "../../api/axios";
-import axios_global from "../../api/axiosGlobal";
+import api from "../../api/axios";
+import apiGlobal from "../../api/axiosGlobal";
+import { toast } from "react-toastify";
+import { Pencil, Trash2 } from "lucide-react";
+import CarList from "./CarList";
+import CarInfo from "./CarInfo";
 
-const fieldRowStyle = { display: "flex", alignItems: "center", marginBottom: 8 };
-const labelStyle = { minWidth: 120, fontWeight: "bold", marginRight: 8 };
-
-export default function AdminCarManagement() {
+const AdminCarManagement = ({ tenant }) => {
   const [cars, setCars] = useState([]);
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [variants, setVariants] = useState([]);
-  const [selectedCar, setSelectedCar] = useState(null);
+
+  const [selectedCarId, setSelectedCarId] = useState(null);
+  const [filterBrand, setFilterBrand] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
   const [carFields, setCarFields] = useState({
     name: "",
     brand_id: "",
-    model_id: "",
+    car_model_id: "",
     variant_id: "",
-    model_year: "",
+    production_year: "",
     price: "",
     stock: "",
+    is_featured: false,
+    is_public: true,
     image_url: "",
+    status: "available", // ✅ Add default status
   });
 
-  // Get tenant_id from current user (adjust as needed)
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const tenant_id = user.tenant_id;
+  const [selectedCarInfo, setSelectedCarInfo] = useState(null);
+  const [isCarManuallySelected, setIsCarManuallySelected] = useState(false);
 
+  const filteredCars = cars.filter(
+    (car) =>
+      (!filterBrand || car.brand_id == filterBrand) &&
+      (!filterStatus || car.status === filterStatus)
+  );
+
+  const paginatedCars = filteredCars.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Now useEffect can safely use paginatedCars
   useEffect(() => {
-    fetchBrands();
     fetchCars();
+    fetchBrands();
   }, []);
 
-  const fetchBrands = async () => {
-    try {
-      const res = await axios_global.get("/car-brands/");
-      setBrands(res.data);
-    } catch (err) {
-      console.error("Error fetching brands", err);
+  useEffect(() => {
+    if (!isCarManuallySelected) {
+      if (paginatedCars.length > 0) {
+        setSelectedCarInfo(paginatedCars[0]);
+      } else {
+        setSelectedCarInfo(null);
+      }
     }
-  };
-
-  const fetchModels = async (brandId) => {
-    try {
-      const res = await axios_global.get(`/car-models/?brand_id=${brandId}`);
-      setModels(res.data);
-    } catch (err) {
-      console.error("Error fetching models", err);
-    }
-  };
-
-  const fetchVariants = async (modelId) => {
-    try {
-      const res = await axios_global.get(`/car-variants/?model_id=${modelId}`);
-      setVariants(res.data);
-    } catch (err) {
-      console.error("Error fetching variants", err);
-    }
-  };
+  }, [paginatedCars, isCarManuallySelected]);
 
   const fetchCars = async () => {
     try {
-      const res = await axios.get("/cars/");
+      const res = await api.get(`/cars/`);
       setCars(res.data);
     } catch (err) {
-      console.error("Error fetching cars", err);
+      toast.error("Failed to load cars");
     }
   };
 
-  // Handle dropdown changes
-  const handleBrandChange = (e) => {
-    const brand_id = e.target.value;
-    setCarFields({
-      ...carFields,
-      brand_id,
-      model_id: "",
-      variant_id: "",
-    });
-    setModels([]);
-    setVariants([]);
-    if (brand_id) fetchModels(brand_id);
+  const fetchBrands = async () => {
+    const res = await apiGlobal.get("/car-brands");
+    setBrands(res.data);
   };
 
-  const handleModelChange = (e) => {
-    const model_id = e.target.value;
-    setCarFields({
-      ...carFields,
-      model_id,
-      variant_id: "",
-    });
-    setVariants([]);
-    if (model_id) fetchVariants(model_id);
+  const fetchModels = async (brand_id) => {
+    if (!brand_id) return;
+    const res = await apiGlobal.get(`/car-models?brand_id=${brand_id}`);
+    setModels(res.data);
   };
 
-  const handleVariantChange = (e) => {
-    const variant_id = e.target.value;
-    setCarFields({ ...carFields, variant_id });
+  const fetchVariants = async (model_id) => {
+    if (!model_id) return;
+    const res = await apiGlobal.get(`/car-variants?car_model_id=${model_id}`);
+    setVariants(res.data);
   };
 
-  const handleFieldChange = (e) => {
-    setCarFields({ ...carFields, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setCarFields((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
 
-  // CRUD handlers
-  const handleCarCreate = async () => {
-    if (
-      !carFields.name ||
-      !carFields.brand_id ||
-      !carFields.model_id ||
-      !carFields.variant_id ||
-      !carFields.model_year ||
-      !carFields.price ||
-      !carFields.stock ||
-      !carFields.image_url
-    ) {
-      alert("Please fill all fields.");
-      return;
-    }
-    if (!tenant_id) {
-      alert("No tenant_id found. Please re-login.");
-      return;
-    }
-    try {
-      await axios.post("/cars/", {
-        name: carFields.name,
-        brand_id: Number(carFields.brand_id),
-        model_id: Number(carFields.model_id),
-        variant_id: Number(carFields.variant_id),
-        model_year: Number(carFields.model_year),
-        price: Number(carFields.price),
-        stock: Number(carFields.stock),
-        image_url: carFields.image_url,
-        tenant_id: Number(tenant_id),
-      });
-      alert("Car created!");
-      setCarFields({
-        name: "",
-        brand_id: "",
-        model_id: "",
+    if (name === "brand_id") {
+      fetchModels(value);
+      setCarFields((prev) => ({
+        ...prev,
+        car_model_id: "",
         variant_id: "",
-        model_year: "",
-        price: "",
-        stock: "",
-        image_url: "",
-      });
-      setSelectedCar(null);
-      fetchCars();
-    } catch (err) {
-      console.error("Error creating car", err);
-      if (err.response?.data?.detail) {
-        alert("Error: " + JSON.stringify(err.response.data.detail));
-      } else if (err.response?.data) {
-        alert("Error: " + JSON.stringify(err.response.data));
-      } else {
-        alert("Error creating car");
+      }));
+    }
+
+    if (name === "car_model_id") {
+      fetchVariants(value);
+      setCarFields((prev) => ({
+        ...prev,
+        variant_id: "",
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const payload = {
+  ...carFields,
+  // tenant_id: tenant,
+  variant_id: carFields.variant_id === "" ? null : Number(carFields.variant_id),
+  brand_id: Number(carFields.brand_id),
+  car_model_id: carFields.car_model_id === "" ? null : Number(carFields.car_model_id),
+
+  // Fix: only convert if value exists
+  production_year:
+    carFields.production_year === "" ? undefined : Number(carFields.production_year),
+
+  price: carFields.price === "" ? undefined : Number(carFields.price),
+  stock: carFields.stock === "" ? undefined : Number(carFields.stock),
+};
+
+  console.log("🚗 Submitting Car Payload:", payload);
+
+  try {
+    if (selectedCarId) {
+      await api.put(`/cars/${selectedCarId}`, payload);
+      toast.success("Car updated");
+    } else {
+      await api.post("/cars/", payload);
+      toast.success("Car added");
+    }
+    fetchCars();
+    resetForm();
+  } catch (err) {
+    toast.error("Car save failed");
+    console.error(err?.response?.data || err.message);
+  }
+};
+
+  const handleEdit = (car) => {
+    setSelectedCarId(car.id);
+    setCarFields({
+    name: car.name,
+    brand_id: car.brand_id,
+    car_model_id: car.car_model_id,
+    variant_id: car.variant_id,
+    production_year: car.production_year,
+    price: car.price,
+    stock: car.stock,
+    is_featured: car.is_featured,
+    is_public: car.is_public,
+    image_url: car.image_url || "",
+    status: car.status || "available", // ✅ Default to "available"
+    });
+
+    fetchModels(car.brand_id);
+    fetchVariants(car.car_model_id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm("Are you sure you want to delete this car?")) {
+      try {
+        await api.delete(`/cars/${id}`);
+        toast.success("Car deleted");
+        fetchCars();
+      } catch {
+        toast.error("Delete failed");
       }
     }
   };
 
-  const handleCarUpdate = async () => {
-    if (!selectedCar) return;
-    if (
-      !carFields.name ||
-      !carFields.brand_id ||
-      !carFields.model_id ||
-      !carFields.variant_id ||
-      !carFields.model_year ||
-      !carFields.price ||
-      !carFields.stock ||
-      !carFields.image_url
-    ) {
-      alert("Please fill all fields.");
-      return;
-    }
-    if (!tenant_id) {
-      alert("No tenant_id found. Please re-login.");
-      return;
-    }
-    try {
-      await axios.put(`/cars/${selectedCar.id}`, {
-        name: carFields.name,
-        brand_id: Number(carFields.brand_id),
-        model_id: Number(carFields.model_id),
-        variant_id: Number(carFields.variant_id),
-        model_year: Number(carFields.model_year),
-        price: Number(carFields.price),
-        stock: Number(carFields.stock),
-        image_url: carFields.image_url,
-        tenant_id: Number(tenant_id),
-      });
-      alert("Car updated!");
-      fetchCars();
-    } catch (err) {
-      alert("Error updating car");
-    }
-  };
-
-  const handleCarDelete = async () => {
-    if (!selectedCar || !window.confirm("Delete this car?")) return;
-    try {
-      await axios.delete(`/cars/${selectedCar.id}`);
-      alert("Car deleted!");
-      setSelectedCar(null);
-      setCarFields({
-        name: "",
-        brand_id: "",
-        model_id: "",
-        variant_id: "",
-        model_year: "",
-        price: "",
-        stock: "",
-        image_url: "",
-      });
-      fetchCars();
-    } catch (err) {
-      alert("Error deleting car");
-    }
-  };
-
-  // When selecting a car from the list
-  const handleSelectCar = (car) => {
-    setSelectedCar(car);
+  const resetForm = () => {
+    setSelectedCarId(null);
     setCarFields({
-      name: car.name || "",
-      brand_id: car.brand_id || "",
-      model_id: car.model_id || "",
-      variant_id: car.variant_id || "",
-      model_year: car.model_year || "",
-      price: car.price || "",
-      stock: car.stock || "",
-      image_url: car.image_url || "",
+    name: "",
+    brand_id: "",
+    car_model_id: "",
+    variant_id: "",
+    production_year: "",
+    price: "",
+    stock: "",
+    is_featured: false,
+    is_public: true,
+    image_url: "",
+    status: "available", // ✅ Reset to default status
     });
-    if (car.brand_id) fetchModels(car.brand_id);
-    if (car.model_id) fetchVariants(car.model_id);
   };
-
-  if (!tenant_id) {
-    return (
-      <div style={{ color: "red", padding: 20 }}>
-        <b>Error:</b> No tenant ID found. Please log in again.
-      </div>
-    );
-  }
 
   return (
-    <div style={{ marginTop: 20, padding: 10, border: "1px solid #388e3c" }}>
-      <h3>Car Management</h3>
-      {/* Car List */}
-      <table style={{ width: "100%", marginBottom: 20, borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ background: "#f0f0f0" }}>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Name</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Brand</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Model</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Variant</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Year</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Price</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Stock</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Image</th>
-            <th style={{ border: "1px solid #ccc", padding: 6 }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cars.map((car) => (
-            <tr key={car.id}>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>{car.name}</td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>
-                {brands.find(b => b.id === car.brand_id)?.name || car.brand_id}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>
-                {models.find(m => m.id === car.model_id)?.name || car.model_id}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>
-                {variants.find(v => v.id === car.variant_id)?.name || car.variant_id}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>{car.model_year}</td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>{car.price}</td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>{car.stock}</td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>
-                {car.image_url ? <img src={car.image_url} alt="" style={{ width: 50 }} /> : ""}
-              </td>
-              <td style={{ border: "1px solid #ccc", padding: 6 }}>
-                <button onClick={() => handleSelectCar(car)} style={{ marginRight: 8 }}>Update</button>
-                <button onClick={() => { setSelectedCar(car); handleCarDelete(); }} style={{ backgroundColor: "red", color: "white" }}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {/* Car Form */}
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Name:</label>
-        <input name="name" value={carFields.name} onChange={handleFieldChange} style={{ padding: 8, width: "80%" }} />
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Brand:</label>
-        <select name="brand_id" value={carFields.brand_id} onChange={handleBrandChange} style={{ padding: 8, width: "80%" }}>
+    <div className="container mx-auto px-2 py-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl shadow-xl mb-8">
+        <h2 className="col-span-1 md:col-span-2 text-2xl font-bold text-blue-700 mb-2">
+          {selectedCarId ? "Edit Car" : "Add New Car"}
+        </h2>
+
+        <input
+          name="name"
+          placeholder="Car Name"
+          value={carFields.name ?? ""}
+          onChange={handleChange}
+          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
+          required
+        />
+        <input
+          name="image_url"
+          placeholder="Image URL"
+          value={carFields.image_url ?? ""}
+          onChange={handleChange}
+          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
+        />
+
+        <select name="brand_id" value={carFields.brand_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
           <option value="">Select Brand</option>
-          {brands.map((brand) => (
-            <option key={brand.id} value={brand.id}>{brand.name}</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
           ))}
         </select>
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Model:</label>
-        <select name="model_id" value={carFields.model_id} onChange={handleModelChange} style={{ padding: 8, width: "80%" }}>
+
+        <select name="car_model_id" value={carFields.car_model_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
           <option value="">Select Model</option>
-          {models.map((model) => (
-            <option key={model.id} value={model.id}>{model.name}</option>
+          {models.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Variant:</label>
-        <select name="variant_id" value={carFields.variant_id} onChange={handleVariantChange} style={{ padding: 8, width: "80%" }}>
+
+        <select name="car_variant_id" value={carFields.car_variant_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
           <option value="">Select Variant</option>
-          {variants.map((variant) => (
-            <option key={variant.id} value={variant.id}>{variant.name}</option>
+          {variants.map((v) => (
+            <option key={v.id} value={v.id}>{v.name}</option>
           ))}
         </select>
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Model Year:</label>
-        <input name="model_year" type="number" value={carFields.model_year} onChange={handleFieldChange} style={{ padding: 8, width: "80%" }} />
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Price:</label>
-        <input name="price" type="number" value={carFields.price} onChange={handleFieldChange} style={{ padding: 8, width: "80%" }} />
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Stock:</label>
-        <input name="stock" type="number" value={carFields.stock} onChange={handleFieldChange} style={{ padding: 8, width: "80%" }} />
-      </div>
-      <div style={fieldRowStyle}>
-        <label style={labelStyle}>Image URL:</label>
-        <input name="image_url" value={carFields.image_url} onChange={handleFieldChange} style={{ padding: 8, width: "80%" }} />
-      </div>
-      <div style={{ marginTop: 10 }}>
-        <button onClick={selectedCar ? handleCarUpdate : handleCarCreate} style={{ marginRight: 10 }}>
-          {selectedCar ? "Update Car" : "Add Car"}
-        </button>
-        {selectedCar && (
-          <button
-            onClick={() => {
-              setSelectedCar(null);
-              setCarFields({
-                name: "",
-                brand_id: "",
-                model_id: "",
-                variant_id: "",
-                model_year: "",
-                price: "",
-                stock: "",
-                image_url: "",
-              });
+
+        <input
+          type="number"
+          name="production_year"
+          placeholder="Year"
+          value={carFields.production_year ?? ""}
+          onChange={handleChange}
+          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          value={carFields.price ?? ""}
+          onChange={handleChange}
+          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="number"
+          name="stock"
+          placeholder="Stock"
+          value={carFields.stock ?? ""}
+          onChange={handleChange}
+          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
+        />
+
+        <div className="flex items-center gap-2">
+          <input type="checkbox" name="is_featured" checked={carFields.is_featured} onChange={handleChange} />
+          <label className="text-blue-700 font-medium">Feature</label>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="checkbox" name="is_public" checked={carFields.is_public} onChange={handleChange} />
+          <label className="text-blue-700 font-medium">Public</label>
+        </div>
+
+        <select name="status" value={carFields.status} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
+          <option value="available">Available</option>
+          <option value="sold">Sold</option>
+          <option value="upcoming">Upcoming</option>
+        </select>
+
+        <div className="col-span-1 md:col-span-2 flex gap-4 mt-4">
+          <button type="submit" className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow">{selectedCarId ? "Update" : "Add"}</button>
+          {selectedCarId && (
+            <button type="button" onClick={resetForm} className="btn btn-secondary bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg shadow">Cancel</button>
+          )}
+        </div>
+      </form>
+
+      <div className="flex flex-col md:flex-row gap-8 mb-8">
+        <div className="md:w-1/3">
+          <CarList
+            cars={paginatedCars}
+            selectedCarInfo={selectedCarInfo}
+            onSelectCar={(car) => {
+              setSelectedCarInfo(car);
+              setIsCarManuallySelected(true);
             }}
-          >
-            Cancel
-          </button>
-        )}
+          />
+        </div>
+        <div className="md:w-2/3">
+          <CarInfo
+            car={selectedCarInfo}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
       </div>
+
+      {filteredCars.length > itemsPerPage && (
+        <div className="flex justify-center gap-4 mt-6">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded shadow"
+          >
+            Prev
+          </button>
+          <span className="self-center text-sm font-semibold text-blue-700">Page {currentPage}</span>
+          <button
+            onClick={() =>
+              setCurrentPage((p) =>
+                p < Math.ceil(filteredCars.length / itemsPerPage) ? p + 1 : p
+              )
+            }
+            disabled={currentPage === Math.ceil(filteredCars.length / itemsPerPage)}
+            className="btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded shadow"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default AdminCarManagement;
