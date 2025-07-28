@@ -1,4 +1,5 @@
 import { useState } from "react";
+import api from "../../api/axios";
 
 export default function BookNowModal({ car, tenant, onClose }) {
   const [form, setForm] = useState({ name: "", email: "", preferred_time: "" });
@@ -10,13 +11,23 @@ export default function BookNowModal({ car, tenant, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch("/api/public/book-test-drive", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, car_id: car.id, tenant_subdomain: tenant })
-    });
-    const data = await res.json();
-    setMessage(data.message);
+    try {
+      const payload = {
+        id: 0,
+        name: form.name,
+        email: form.email,
+        preferred_time: form.preferred_time,
+        car_id: car.id,
+        tenant_subdomain: tenant,
+        status: "pending",
+        created_at: new Date().toISOString(),
+      };
+      console.log("Submitting booking request:", payload);
+      const res = await api.post("/public/book-test-drive", payload);
+      setMessage(res.data.message || "Booking request submitted!");
+    } catch (err) {
+      setMessage("Failed to submit booking. Please try again.");
+    }
   };
 
   return (
