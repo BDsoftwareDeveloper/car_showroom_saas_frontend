@@ -111,3 +111,54 @@ export default function Login({ onLogin = () => {} }) {
     </div>
   );
 }
+
+
+
+// import { useState, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+// import LoginForm from "../components/auth/LoginForm";
+// import { loginUser, getStoredUser, getStoredToken, storeSession, clearSessionAfter } from "../utils/auth";
+
+// export default function LoginPage({ onLogin = () => {} }) {
+//   const [error, setError] = useState("");
+//   const [loading, setLoading] = useState(false);
+//   const navigate = useNavigate();
+
+//   useEffect(() => {
+//     const token = getStoredToken();
+//     const user = getStoredUser();
+
+//     if (token && user) {
+//       const path = user.is_superadmin ? "/superadmin" : `/${user.role}`;
+//       navigate(path);
+//     } else {
+//       navigate("/"); // anonymous user fallback
+//     }
+//   }, [navigate]);
+
+//   const handleLogin = async ({ email, password, rememberMe }) => {
+//     setLoading(true);
+//     setError("");
+
+//     try {
+//       const { access_token, user, decoded, expiresInMs } = await loginUser(email, password);
+
+//       storeSession(access_token, user, rememberMe);
+//       clearSessionAfter(expiresInMs, navigate);
+
+//       onLogin(user);
+//       navigate(user.is_superadmin ? "/superadmin" : `/${user.role}`);
+//     } catch (err) {
+//       console.error("Login error:", err);
+//       setError(err.response?.data?.detail || "Invalid email or password");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+//       <LoginForm onSubmit={handleLogin} loading={loading} error={error} />
+//     </div>
+//   );
+// }

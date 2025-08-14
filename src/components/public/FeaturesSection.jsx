@@ -1,45 +1,4 @@
-// import "../../styles/FeaturesSection.css";
-// export default function FeaturesSection() {
-//   const features = [
-//     { icon: "🚗", title: "Car Inventory" },
-//     { icon: "👥", title: "Customer & Staff" },
-//     { icon: "📊", title: "Sales Tracking" },
-//     { icon: "🌐", title: "Multi-Tenant Setup" },
-//   ];
-
-//   return (
-//     <section
-//       id="features"
-//       className="bg-white py-16 px-6"
-//       aria-labelledby="features-heading"
-//       role="region"
-//     >
-//       <h3
-//         id="features-heading"
-//         className="text-3xl font-bold text-center text-gray-800 mb-12"
-//       >
-//         Key Features
-//       </h3>
-
-//       <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
-//         {features.map(({ icon, title }) => (
-//           <div
-//             key={title}
-//             className="bg-gray-100 p-6 rounded-xl text-center shadow transition-shadow duration-300 hover:shadow-lg focus-within:shadow-lg"
-//             tabIndex={0}
-//             aria-label={title}
-//           >
-//             <div className="text-5xl mb-4" aria-hidden="true">
-//               {icon}
-//             </div>
-//             <h4 className="text-xl font-semibold text-gray-700">{title}</h4>
-//           </div>
-//         ))}
-//       </div>
-//     </section>
-//   );
-// }
-
+// src/components/public/FeaturesSection.jsx
 
 
 export default function FeaturesSection() {

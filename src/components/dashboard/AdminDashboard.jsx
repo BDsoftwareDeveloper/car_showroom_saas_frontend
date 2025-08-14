@@ -81,7 +81,7 @@ import AdminCarManagement from "../admin/AdminCarManagement";
 import AdminContactMessages from "../admin/AdminContactMessages";
 import AdminFrontpageSettings from "../admin/AdminFrontpageSettings";
 import AdminBookingManagement from "../admin/AdminBookingManagement"; // ✅ New import
-import LogoutButton from "../common/LogoutButton";
+import LogoutButton from "../public/common/LogoutButton";
 
 // Optional stub component
 function SalesManagement() {

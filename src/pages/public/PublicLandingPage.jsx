@@ -1,85 +1,13 @@
-import { useEffect, useState } from "react";
-import Header from "../components/public/layout/Header";
-import HeroSection from "../components/public/HeroSection";
-import FeaturesSection from "../components/public/FeaturesSection";
-import Footer from "../components/public/layout/Footer";
-
-import FeaturedCarsSection from "../components/public/FeaturedCarsSection";
-import api from "../api/axios";
-import { API_BASE_URL } from "../api/constants";
+// src/pages/public/PublicLandingPage.jsx
+import useLandingSettings from "../../hooks/useLandingSettings";
+import Header from "../../components/public/layout/Header";
+import HeroSection from "../../components/public/HeroSection";
+import FeaturesSection from "../../components/public/FeaturesSection";
+import Footer from "../../components/public/layout/Footer";
+import FeaturedCarsSection from "../../components/public/FeaturedCarsSection";
 
 export default function PublicLandingPage() {
-  const defaultSettings = {
-    company_name: "SpeedAuto",
-    homepage_title: "SpeedAuto - Your Trusted Car Dealer",
-    hero_title: "Welcome to SpeedAuto",
-    hero_subtitle: "Your trusted partner for premium vehicles",
-    cta_button_text: "Explore Cars",
-    cta_button_link: "#explore",
-    primary_color: "#1d4ed8",
-    secondary_color: "#facc15",
-    logo_url: null,
-    about_text: "We provide premium vehicles with unmatched service quality.",
-    footer_text: "© 2025 SpeedAuto. All rights reserved.",
-    social_links: {
-      facebook: "#",
-      twitter: "#",
-      instagram: "#",
-      linkedin: "#",
-    },
-  };
-
-  const [settings, setSettings] = useState(defaultSettings);
-  const [cars, setCars] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const extractSubdomain = () => {
-      const host = window.location.hostname;
-      const parts = host.split(".");
-      if (host.endsWith(".local")) return parts[0];
-      if (parts.length >= 3) return parts[0];
-      return "default";
-    };
-
-    const tenant = extractSubdomain();
-
-    api
-      .get("/public/frontpage-settings", {
-        params: { subdomain: tenant },
-      })
-      .then((res) => {
-        const serverSettings = res.data || {};
-        setSettings((prev) => ({
-          ...prev,
-          ...serverSettings,
-          social_links: {
-            ...prev.social_links,
-            ...(serverSettings.social_links ?? {}),
-          },
-        }));
-      })
-      .catch((err) => {
-        console.error("❌ Failed to fetch frontpage settings:", err);
-      });
-
-    async function fetchCars() {
-      try {
-        const res = await api.get(`/cars?subdomain=${tenant}`);
-        setCars(res.data);
-      } catch (err) {
-        setCars([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCars();
-  }, []);
-
-  const logoFullUrl = settings.logo_url
-    ? `${API_BASE_URL.replace(/\/+$/, "")}${settings.logo_url}`
-    : null;
+  const { settings, cars, loading, logoFullUrl } = useLandingSettings();
 
   if (loading) {
     return (
@@ -105,7 +33,7 @@ export default function PublicLandingPage() {
       </div>
 
       <div className="flex flex-1 w-full">
-        {/* Sidebar (desktop only) */}
+        {/* Sidebar */}
         <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-blue-100 via-white to-blue-50 border-r border-blue-200 shadow-lg py-8 px-4">
           <nav className="space-y-6">
             <a href="#explore" className="block text-blue-700 font-semibold hover:text-blue-900 transition">Featured Cars</a>
@@ -130,7 +58,7 @@ export default function PublicLandingPage() {
           <section className="w-full px-4 md:px-12 py-16 bg-gradient-to-r from-blue-50 via-white to-blue-100">
             <FeaturedCarsSection cars={cars} />
           </section>
-          <section className="w-full px-4 md:px-12 py-16 ">
+          <section className="w-full px-4 md:px-12 py-16">
             <FeaturesSection />
           </section>
         </main>
