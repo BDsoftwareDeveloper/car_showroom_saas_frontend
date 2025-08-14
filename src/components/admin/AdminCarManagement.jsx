@@ -214,6 +214,7 @@ const AdminCarManagement = ({ tenant }) => {
           required
         />
         <input
+          type="file"
           name="image_url"
           placeholder="Image URL"
           value={carFields.image_url ?? ""}
@@ -235,7 +236,7 @@ const AdminCarManagement = ({ tenant }) => {
           ))}
         </select>
 
-        <select name="car_variant_id" value={carFields.car_variant_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
+        <select name="variant_id" value={carFields.variant_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
           <option value="">Select Variant</option>
           {variants.map((v) => (
             <option key={v.id} value={v.id}>{v.name}</option>

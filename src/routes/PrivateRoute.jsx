@@ -21,20 +21,15 @@ import { Navigate, useLocation } from "react-router-dom";
 export default function PrivateRoute({ children, allowedRoles = [] }) {
   const token = localStorage.getItem("admin_token") || sessionStorage.getItem("admin_token");
   const user = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
-
   const location = useLocation();
 
   if (!token || !user) {
-    // Not authenticated
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Role check (either based on string role or is_superadmin flag)
-  if (
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(user.role) &&
-    !(allowedRoles.includes("superadmin") && user.is_superadmin)
-  ) {
+  const userRole = user.is_superadmin ? "superadmin" : user.role;
+
+  if (!allowedRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
 

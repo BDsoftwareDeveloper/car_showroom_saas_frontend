@@ -5,7 +5,28 @@ import {
   FaInstagram,
   FaLinkedinIn,
 } from "react-icons/fa";
-import NewsletterForm from "./NewsletterForm";
+import NewsletterForm from "../NewsletterForm";
+
+function SocialLink({ icon, label, url }) {
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-white transition"
+      aria-label={label}
+    >
+      {icon}
+    </a>
+  );
+}
+
+SocialLink.propTypes = {
+  icon: PropTypes.element.isRequired,
+  label: PropTypes.string.isRequired,
+  url: PropTypes.string,
+};
 
 export default function Footer({
   aboutText,
@@ -36,7 +57,7 @@ export default function Footer({
           </p>
         </div>
 
-        {/* Contact Info (Optional Static Section) */}
+        {/* Contact Info */}
         <div>
           <h3 className="text-white text-lg font-semibold mb-4">Contact</h3>
           <ul className="text-sm space-y-2">
@@ -63,28 +84,18 @@ export default function Footer({
         {/* Newsletter */}
         <div>
           <h3 className="text-white text-lg font-semibold mb-4">Subscribe</h3>
-          <NewsletterForm subdomain={localStorage.getItem("tenant_subdomain") || "default"} />
+          <NewsletterForm
+            subdomain={localStorage.getItem("tenant_subdomain") || "default"}
+          />
         </div>
 
         {/* Social Media */}
         <div>
           <h3 className="text-white text-lg font-semibold mb-4">Follow Us</h3>
           <div className="flex gap-4 text-2xl">
-            {socialLinks.map(
-              ({ icon, label, url }) =>
-                url && (
-                  <a
-                    key={label}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition"
-                    aria-label={label}
-                  >
-                    {icon}
-                  </a>
-                )
-            )}
+            {socialLinks.map(({ icon, label, url }) => (
+              <SocialLink key={label} icon={icon} label={label} url={url} />
+            ))}
           </div>
         </div>
       </div>
@@ -97,7 +108,6 @@ export default function Footer({
   );
 }
 
-// ✅ Define expected props
 Footer.propTypes = {
   aboutText: PropTypes.string,
   facebookUrl: PropTypes.string,
