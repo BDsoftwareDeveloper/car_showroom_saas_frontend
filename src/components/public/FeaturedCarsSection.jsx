@@ -1,19 +1,37 @@
-import React, { useState } from "react";
-import BookNowModal from "./BookNowModal";
 
-export default function FeaturedCarsSection({ cars }) {
+
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ for SPA navigation
+import BookNowModal from "./BookNowModal";
+import { getTenantSubdomain } from "../../utils/tenant";
+
+export default function FeaturedCarsSection({ cars = [] }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedCar, setSelectedCar] = useState(null);
 
-  const tenant = window.location.hostname.split('.')[0];
+  const tenant = getTenantSubdomain();
+  const navigate = useNavigate(); // ✅ replace window.location.href
 
   const handleBookNow = (car) => {
     setSelectedCar(car);
     setShowModal(true);
   };
 
+  const handleViewDetails = (carId) => {
+    
+    // navigate with query param if tenant is needed
+    navigate(`/car/${carId}`);
+  };
+
+  const handleNotify = (carId) => {
+    navigate(`/notify?carId=${carId}`);
+  };
+
   return (
-    <section className="bg-gradient-to-br from-blue-50 via-white to-blue-100 py-16 px-4" id="explore">
+    <section
+      className="bg-gradient-to-br from-blue-50 via-white to-blue-100 py-16 px-4"
+      id="explore"
+    >
       <h3 className="text-4xl font-extrabold text-center text-blue-700 mb-14 drop-shadow-lg tracking-tight">
         Featured Cars
       </h3>
@@ -23,6 +41,7 @@ export default function FeaturedCarsSection({ cars }) {
             key={car.id}
             className="bg-white border border-blue-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-200 p-7 flex flex-col group"
           >
+            {/* Car Brand */}
             <div className="flex items-center gap-3 mb-5">
               {car.brand?.logo_url && (
                 <img
@@ -33,15 +52,23 @@ export default function FeaturedCarsSection({ cars }) {
               )}
               <span className="font-semibold text-blue-700 text-lg">{car.brand?.name}</span>
             </div>
+
+            {/* Car Image */}
             <img
               src={car.image_url || "/static/images/default_car.png"}
               alt={car.name}
               className="w-full h-44 object-cover rounded-xl mb-5 bg-gray-100 group-hover:scale-105 transition-transform duration-200"
             />
+
+            {/* Car Name */}
             <h4 className="text-2xl font-bold text-gray-800 mb-2">{car.name}</h4>
+
+            {/* Car Variant */}
             <div className="text-sm text-gray-500 mb-2">
               <span className="font-medium">Variant:</span> {car.variant?.name || "N/A"}
             </div>
+
+            {/* Specs */}
             <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2">
               {car.production_year && (
                 <span className="bg-blue-50 px-2 py-1 rounded">{car.production_year}</span>
@@ -56,23 +83,31 @@ export default function FeaturedCarsSection({ cars }) {
                 <span className="bg-blue-50 px-2 py-1 rounded">{car.variant.seats} seats</span>
               )}
             </div>
+
+            {/* Price + Status */}
             <div className="flex justify-between items-center mt-auto pt-4">
-              <span className="text-blue-700 font-bold text-xl">${car.price.toLocaleString()}</span>
-              <span className={`px-4 py-1 rounded-full text-xs font-semibold shadow
-                ${car.status === "available"
-                  ? "bg-green-100 text-green-700"
-                  : car.status === "sold"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-yellow-100 text-yellow-700"}`}>
+              <span className="text-blue-700 font-bold text-xl">
+                {car.price?.toLocaleString()} BDT
+              </span>
+              <span
+                className={`px-4 py-1 rounded-full text-xs font-semibold shadow
+                ${
+                  car.status === "available"
+                    ? "bg-green-100 text-green-700"
+                    : car.status === "sold"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
                 {car.status}
               </span>
             </div>
+
             {/* Action Buttons */}
             {car.status === "available" && (
               <button
                 className="mt-6 w-full py-3 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700 transition"
                 onClick={() => handleBookNow(car)}
-                aria-label={`Book ${car.name}`}
               >
                 Book Now
               </button>
@@ -80,32 +115,31 @@ export default function FeaturedCarsSection({ cars }) {
             {car.status === "upcoming" && (
               <button
                 className="mt-6 w-full py-3 bg-yellow-400 text-blue-900 font-semibold rounded-xl shadow hover:bg-yellow-500 transition"
-                onClick={() => window.location.href = `/notify?carId=${car.id}&tenant_subdomain=${tenant}`}
-                aria-label={`Notify for ${car.name}`}
+                onClick={() => handleNotify(car.id)}
               >
                 Notify Me
               </button>
             )}
             <button
-                className="w-full py-2 border border-blue-600 text-blue-700 font-medium rounded-xl hover:bg-blue-50 transition"
-                onClick={() => window.location.href = `/car/${car.id}`}
-                aria-label={`View details of ${car.name}`}
+              className="w-full py-2 border border-blue-600 text-blue-700 font-medium rounded-xl hover:bg-blue-50 transition mt-2"
+              onClick={() => handleViewDetails(car.id)}
             >
-                View Details
+              View Details
             </button>
-
           </div>
         ))}
+
+        {/* Empty State */}
         {cars.length === 0 && (
-          <div className="col-span-full text-gray-400 text-center py-12">No cars available.</div>
+          <div className="col-span-full text-gray-400 text-center py-12">
+            No cars available.
+          </div>
         )}
       </div>
+
+      {/* Modal */}
       {showModal && selectedCar && (
-        <BookNowModal
-          car={selectedCar}
-          tenant={tenant}
-          onClose={() => setShowModal(false)}
-        />
+        <BookNowModal car={selectedCar} tenant={tenant} onClose={() => setShowModal(false)} />
       )}
     </section>
   );
