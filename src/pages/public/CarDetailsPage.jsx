@@ -2,15 +2,15 @@
 
 // src/pages/public/CarDetailsPage.jsx
 import { useParams, Link } from "react-router-dom";
-import Header from "../components/public/layout/Header";
-import Footer from "../components/public/layout/Footer";
-import CarDetailsCard from "../components/public/car/CarDetailsCard";
-import { useCarDetails } from "../hooks/useCarDetails";
+import Header from "../../components/public/layout/Header";
+import Footer from "../../components/public/layout/Footer";
+import CarDetailsCard from "../../components/public/car/CarDetailsCard";
+import { useCarDetails } from "../../hooks/useCarDetails";
 
 
 export default function CarDetailsPage() {
-  const { car_id } = useParams();
-  const { car, loading } = useCarDetails(car_id);
+  const { carId } = useParams();
+  const { car, loading } = useCarDetails(carId);
 
   return (
     <>
