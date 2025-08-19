@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ for SPA navigation
 import BookNowModal from "./BookNowModal";
 import { getTenantSubdomain } from "../../utils/tenant";
-
+import { API_BASE_URL } from "../../api/constants";
 export default function FeaturedCarsSection({ cars = [] }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedCar, setSelectedCar] = useState(null);
@@ -55,11 +55,16 @@ export default function FeaturedCarsSection({ cars = [] }) {
 
             {/* Car Image */}
             <img
-              src={car.image_url || "/static/images/default_car.png"}
+              src={
+                car.image_url
+                  ? car.image_url.startsWith("http")
+                    ? car.image_url
+                    : `${API_BASE_URL}${car.image_url}`
+                  : "/static/images/default_car.png"
+              }
               alt={car.name}
               className="w-full h-44 object-cover rounded-xl mb-5 bg-gray-100 group-hover:scale-105 transition-transform duration-200"
             />
-
             {/* Car Name */}
             <h4 className="text-2xl font-bold text-gray-800 mb-2">{car.name}</h4>
 
