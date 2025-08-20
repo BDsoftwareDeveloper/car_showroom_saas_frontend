@@ -1,22 +1,61 @@
-import React from "react";
+// 
+
+import { API_BASE_URL } from "../../api/constants";
+import React, { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
-const CarInfo = ({ car, onEdit, onDelete }) => (
-  <div className="bg-gradient-to-br from-white via-blue-50 to-gray-100 rounded-xl shadow-xl p-6">
-    <h3 className="font-bold mb-6 text-xl text-blue-700 tracking-wide border-b-2 border-blue-100 pb-3">Car Info</h3>
-    {car ? (
+const CarInfo = ({ car, mainImage, onEdit, onDelete }) => {
+  const [currentImage, setCurrentImage] = useState(mainImage);
+
+  // Update local state whenever mainImage changes
+  useEffect(() => {
+    setCurrentImage(mainImage);
+  }, [mainImage]);
+
+  if (!car) {
+    return (
+      <div className="text-gray-400 text-center py-12">
+        Select a car from the list to view details.
+      </div>
+    );
+  }
+
+  const resolvedImage =
+    currentImage && (currentImage.startsWith("http") ? currentImage : API_BASE_URL + currentImage);
+
+  return (
+    <div className="bg-gradient-to-br from-white via-blue-50 to-gray-100 rounded-xl shadow-xl p-6">
+      <h3 className="font-bold mb-6 text-xl text-blue-700 tracking-wide border-b-2 border-blue-100 pb-3">
+        Car Info
+      </h3>
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <img
-          src={car.image_url}
-          alt={car.name}
-          className="w-full md:w-64 h-40 object-cover rounded-lg shadow"
-        />
+        {resolvedImage ? (
+          <img
+            src={resolvedImage}
+            alt={car.name}
+            className="w-full md:w-64 h-40 object-cover rounded-lg shadow"
+          />
+        ) : (
+          <div className="w-full md:w-64 h-40 flex items-center justify-center border rounded-lg text-gray-400 bg-gray-100">
+            No image available
+          </div>
+        )}
+
         <div className="flex-1">
           <h3 className="font-semibold text-2xl text-blue-900 mb-2">{car.name}</h3>
           <div className="space-y-2 text-gray-700">
-            <p><span className="font-medium">Price:</span> <span className="text-blue-700">${car.price}</span></p>
-            <p><span className="font-medium">Stock:</span> <span className="text-green-700">{car.stock}</span></p>
-            <p><span className="font-medium">Status:</span> <span className="text-purple-700 capitalize">{car.status}</span></p>
+            <p>
+              <span className="font-medium">Price:</span>{" "}
+              <span className="text-blue-700">${car.price}</span>
+            </p>
+            <p>
+              <span className="font-medium">Stock:</span>{" "}
+              <span className="text-green-700">{car.stock}</span>
+            </p>
+            <p>
+              <span className="font-medium">Status:</span>{" "}
+              <span className="text-purple-700 capitalize">{car.status}</span>
+            </p>
           </div>
           <div className="flex gap-3 mt-6">
             <button
@@ -34,10 +73,8 @@ const CarInfo = ({ car, onEdit, onDelete }) => (
           </div>
         </div>
       </div>
-    ) : (
-      <div className="text-gray-400 text-center py-12">Select a car from the list to view details.</div>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 export default CarInfo;

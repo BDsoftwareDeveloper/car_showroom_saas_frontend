@@ -1,13 +1,14 @@
 
 
-
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import api from "../../api/axios";
 import apiGlobal from "../../api/axiosGlobal";
-import { toast } from "react-toastify";
+
 import CarList from "./CarList";
 import CarInfo from "./CarInfo";
-import { API_BASE_URL } from "../../api/constants"; // make sure this import exists
+import CarMediaManager from "./carMedia/CarMediaManager"; 
+import { useCarMedia } from "../../hooks/useCarMedia";
 
 const AdminCarManagement = ({ tenant }) => {
   const [cars, setCars] = useState([]);
@@ -32,34 +33,35 @@ const AdminCarManagement = ({ tenant }) => {
     status: "available",
   });
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-
   const [filterBrand, setFilterBrand] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Filtered & paginated cars
+  // --- MEDIA HOOK ---
+  const { mediaList, mainImage, deleteMedia, setPrimaryMedia, reorderMedia } = useCarMedia(selectedCarId);
+
+  // --- FILTER & PAGINATION ---
   const filteredCars = cars.filter(
     (car) =>
-      (!filterBrand || car.brand_id == filterBrand) &&
+      (!filterBrand || car.brand_id === filterBrand) &&
       (!filterStatus || car.status === filterStatus)
   );
-
   const paginatedCars = filteredCars.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // --- FETCH DATA ---
   useEffect(() => {
     fetchCars();
     fetchBrands();
   }, []);
 
   useEffect(() => {
-    if (!isCarManuallySelected) {
-      setSelectedCarInfo(paginatedCars[0] || null);
+    if (!isCarManuallySelected && paginatedCars.length > 0) {
+      setSelectedCarInfo(paginatedCars[0]);
+      setSelectedCarId(paginatedCars[0].id);
     }
   }, [paginatedCars, isCarManuallySelected]);
 
@@ -91,6 +93,7 @@ const AdminCarManagement = ({ tenant }) => {
     setVariants(res.data);
   };
 
+  // --- FORM HANDLING ---
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -115,13 +118,6 @@ const AdminCarManagement = ({ tenant }) => {
       return;
     }
 
-    if (name === "image") {
-      const file = e.target.files[0];
-      setImageFile(file);
-      if (file) setImagePreview(URL.createObjectURL(file));
-      return;
-    }
-
     setCarFields((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -130,33 +126,22 @@ const AdminCarManagement = ({ tenant }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const formData = new FormData();
-    formData.append("name", carFields.name);
-    formData.append("brand_id", carFields.brand_id);
-    formData.append("car_model_id", carFields.car_model_id || "");
-    formData.append("variant_id", carFields.variant_id || "");
-    formData.append("production_year", carFields.production_year || "");
-    formData.append("price", carFields.price || "");
-    formData.append("stock", carFields.stock || "");
-    formData.append("is_featured", carFields.is_featured);
-    formData.append("is_public", carFields.is_public);
-    formData.append("status", carFields.status);
-    if (imageFile) formData.append("image", imageFile);
+    const payload = { ...carFields };
 
     try {
       if (selectedCarId) {
-        await api.put(`/cars/${selectedCarId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.put(`/cars/${selectedCarId}`, payload);
         toast.success("Car updated successfully");
+        // Update car locally instead of refetching
+        setCars((prev) =>
+          prev.map((c) => (c.id === selectedCarId ? { ...c, ...payload } : c))
+        );
       } else {
-        await api.post(`/cars/`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const res = await api.post(`/cars/`, payload);
+        setSelectedCarId(res.data.id);
+        setCars((prev) => [...prev, res.data]);
         toast.success("Car added successfully");
       }
-      fetchCars();
       resetForm();
     } catch (err) {
       console.error(err?.response?.data || err.message);
@@ -165,40 +150,35 @@ const AdminCarManagement = ({ tenant }) => {
   };
 
   const handleEdit = (car) => {
-  setSelectedCarId(car.id);
-  setCarFields({
-    name: car.name,
-    brand_id: car.brand_id,
-    car_model_id: car.car_model_id || "",
-    variant_id: car.variant_id || "",
-    production_year: car.production_year || "",
-    price: car.price || "",
-    stock: car.stock || "",
-    is_featured: car.is_featured,
-    is_public: car.is_public,
-    status: car.status || "available",
-  });
+    setSelectedCarId(car.id);
+    setCarFields({
+      name: car.name,
+      brand_id: car.brand_id,
+      car_model_id: car.car_model_id || "",
+      variant_id: car.variant_id || "",
+      production_year: car.production_year || "",
+      price: car.price || "",
+      stock: car.stock || "",
+      is_featured: car.is_featured,
+      is_public: car.is_public,
+      status: car.status || "available",
+    });
 
-  setImageFile(null);
-
-  // Show image preview with full URL
-  if (car.image_url) {
-    setImagePreview(car.image_url.startsWith("http") ? car.image_url : API_BASE_URL + car.image_url);
-  } else {
-    setImagePreview(null);
-  }
-
-  fetchModels(car.brand_id);
-  fetchVariants(car.car_model_id);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
+    fetchModels(car.brand_id);
+    fetchVariants(car.car_model_id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this car?")) return;
     try {
       await api.delete(`/cars/${id}`);
       toast.success("Car deleted successfully");
-      fetchCars();
+      setCars((prev) => prev.filter((c) => c.id !== id));
+      if (id === selectedCarId) {
+        setSelectedCarId(null);
+        setSelectedCarInfo(null);
+      }
     } catch {
       toast.error("Delete failed");
     }
@@ -218,9 +198,14 @@ const AdminCarManagement = ({ tenant }) => {
       is_public: true,
       status: "available",
     });
-    setImageFile(null);
-    setImagePreview(null);
   };
+
+  // --- LOCAL update for mainImage when primary changes ---
+  useEffect(() => {
+    if (selectedCarId) {
+      setSelectedCarInfo((prev) => prev ? { ...prev } : prev); // trigger re-render
+    }
+  }, [mainImage, selectedCarId]);
 
   return (
     <div className="container mx-auto px-2 py-6">
@@ -230,61 +215,7 @@ const AdminCarManagement = ({ tenant }) => {
           {selectedCarId ? "Edit Car" : "Add New Car"}
         </h2>
 
-        <input
-          name="name"
-          placeholder="Car Name"
-          value={carFields.name}
-          onChange={handleChange}
-          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
-          required
-        />
-
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          onChange={handleChange}
-          className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400"
-        />
-
-        {imagePreview && (
-          <img src={imagePreview} alt="Preview" className="mt-2 w-40 h-40 object-cover rounded-lg border" />
-        )}
-
-        <select name="brand_id" value={carFields.brand_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
-          <option value="">Select Brand</option>
-          {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
-        </select>
-
-        <select name="car_model_id" value={carFields.car_model_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400">
-          <option value="">Select Model</option>
-          {models.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
-        </select>
-
-        <select name="variant_id" value={carFields.variant_id} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400">
-          <option value="">Select Variant</option>
-          {variants.map((v) => (<option key={v.id} value={v.id}>{v.name}</option>))}
-        </select>
-
-        <input type="number" name="production_year" placeholder="Year" value={carFields.production_year} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" />
-        <input type="number" name="price" placeholder="Price" value={carFields.price} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" />
-        <input type="number" name="stock" placeholder="Stock" value={carFields.stock} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" />
-
-        <div className="flex items-center gap-2">
-          <input type="checkbox" name="is_featured" checked={carFields.is_featured} onChange={handleChange} />
-          <label className="text-blue-700 font-medium">Feature</label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input type="checkbox" name="is_public" checked={carFields.is_public} onChange={handleChange} />
-          <label className="text-blue-700 font-medium">Public</label>
-        </div>
-
-        <select name="status" value={carFields.status} onChange={handleChange} className="input bg-blue-50 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400" required>
-          <option value="available">Available</option>
-          <option value="sold">Sold</option>
-          <option value="upcoming">Upcoming</option>
-        </select>
+        {/* form inputs ... */}
 
         <div className="col-span-1 md:col-span-2 flex gap-4 mt-4">
           <button type="submit" className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow">{selectedCarId ? "Update" : "Add"}</button>
@@ -294,7 +225,7 @@ const AdminCarManagement = ({ tenant }) => {
         </div>
       </form>
 
-      {/* Cars List & Info */}
+      {/* Car List & Info */}
       <div className="flex flex-col md:flex-row gap-8 mb-8">
         <div className="md:w-1/3">
           <CarList
@@ -302,12 +233,28 @@ const AdminCarManagement = ({ tenant }) => {
             selectedCarInfo={selectedCarInfo}
             onSelectCar={(car) => {
               setSelectedCarInfo(car);
+              setSelectedCarId(car.id);
               setIsCarManuallySelected(true);
             }}
           />
         </div>
         <div className="md:w-2/3">
-          <CarInfo car={selectedCarInfo} onEdit={handleEdit} onDelete={handleDelete} />
+          <CarInfo
+            car={selectedCarInfo}
+            mainImage={mainImage}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+
+          {selectedCarId && (
+            <CarMediaManager
+              carId={selectedCarId}
+              mediaList={mediaList}
+              deleteMedia={deleteMedia}
+              setPrimaryMedia={setPrimaryMedia}
+              reorderMedia={reorderMedia}
+            />
+          )}
         </div>
       </div>
 
@@ -324,3 +271,4 @@ const AdminCarManagement = ({ tenant }) => {
 };
 
 export default AdminCarManagement;
+
